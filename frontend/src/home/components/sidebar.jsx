@@ -1,298 +1,176 @@
 import React, { useState, useEffect } from "react";
 import { FaSearch } from "react-icons/fa";
-import { FiArrowLeftCircle } from "react-icons/fi";
-import axios from "axios";
+import { SlLogout } from "react-icons/sl";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { SlLogout } from "react-icons/sl";
 import userConversation from "../../Zustans/useConversation";
+import api from "../../services/api";
 
-
-
-const sidebar = ({ onSelectUser }) => {
-
-
-  
+const Sidebar = ({ onSelectUser }) => {
   const navigate = useNavigate();
   const { authUser, setAuthUser } = useAuth();
   const [searchInput, setSearchInput] = useState("");
-  const [searchUser, setSearchuser] = useState([]);
-  const [chatUser, setChatUser] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [chatUsers, setChatUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedUserId, setSetSelectedUserId] = useState(null);
-  const [newMessageUsers, setNewMessageUsers] = useState("");
-  const {messages, selectedConversation, setSelectedConversation} =
-    userConversation()
-  // const talkedwith = chatUser.map((user) => user._id);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const { setSelectedConversation } = userConversation();
 
   useEffect(() => {
-    const chatUserHandler = async () => {
+    const fetchChatUsers = async () => {
       setLoading(true);
       try {
-        const chatters = await axios.get(`/api/user/currentchatters`);
-        const data = chatters.data;
-        if (data.success === false) {
-          setLoading(false);
-          console.log(data.message);
-        }
+        const response = await api.get("/api/user/currentchatters");
+        const data = response.data;
         setLoading(false);
-        setChatUser(data);
+        if (data.success === false) {
+          toast.error(data.message || "Unable to load chats");
+          return;
+        }
+        setChatUsers(Array.isArray(data) ? data : []);
       } catch (error) {
         setLoading(false);
         console.log(error);
       }
     };
-    chatUserHandler();
+    fetchChatUsers();
   }, []);
 
-  // const handelSearchSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   try {
-  //     const search = await axios.get(`/api/user/search?search=${searchInput}`);
-  //     const data = search.data;
-  //     if (data.success === false) {
-  //       setLoading(false);
-  //       console.log(data.message);
-  //     }
-  //     setLoading(false);
-  //     if (data.loading === 0) {
-  //       toast.info("User Not Found");
-  //     } else {
-  //       setSearchuser(data);
-  //     }
-  //   } catch (error) {
-  //     setLoading(false);
-  //     console.log(error);
-  //   }
-  // };
-
-  const handelSearchSubmit = async (e) => {
+  const handleSearchSubmit = async (e) => {
     e.preventDefault();
+    if (!searchInput.trim()) return;
     setLoading(true);
     try {
-      const search = await axios.get(`/api/user/search?search=${searchInput}`);
-      const data = search.data;
-
-      // If your API returns a success flag, handle it here:
-      if (data.success === false) {
-        setLoading(false);
-        toast.info(data.message || "User Not Found");
-        return; // Exit early if unsuccessful
-      }
-
+      const response = await api.get(`/api/user/search?search=${searchInput}`);
+      const data = response.data;
       setLoading(false);
-
-      // Assuming data is an array of users:
-      if (data.length === 0) {
-        toast.info("User Not Found");
-      } else {
-        setSearchuser(data);
+      if (data.success === false || !Array.isArray(data) || data.length === 0) {
+        setSearchResults([]);
+        toast.info(data.message || "User not found");
+        return;
       }
+      setSearchResults(data);
     } catch (error) {
       setLoading(false);
       console.log(error);
+      toast.error("Search failed");
     }
   };
 
-  const handelUserClick = (user) => {
+  const handleUserClick = (user) => {
     onSelectUser(user);
     setSelectedConversation(user);
-    setSetSelectedUserId(user._id);
+    setSelectedUserId(user._id);
   };
 
-  const handelSearchback = () => {
-    setSearchuser([]);
+  const handleClearSearch = () => {
+    setSearchResults([]);
     setSearchInput("");
   };
 
-  const handelLogOut = async () => {
-    const confirmlogout = window.prompt("type 'UserName' to logout");
-    if (confirmlogout === authUser.username) {
-      setLoading(true);
-      try {
-        const logout = await axios.post(`/api/auth/logout`);
-        const data = logout.data;
-        if (data?.success === false) {
-          setLoading(false);
-          console.log(data?.message);
-        }
-        toast.info(data?.message);
-        localStorage.removeItem("chatapp");
-        setAuthUser(null);
-        setLoading(false);
-        navigate("/login");
-      } catch (error) {
-        setLoading(false);
-        console.log(error);
+  const handleLogout = async () => {
+    const confirmation = window.prompt("Type your username to logout");
+    if (confirmation !== authUser?.username) return;
+    setLoading(true);
+    try {
+      const response = await api.post("/api/auth/logout");
+      const data = response.data;
+      setLoading(false);
+      if (data?.success === false) {
+        toast.error(data.message || "Logout failed");
+        return;
       }
+      toast.info(data?.message || "Logged out successfully");
+      localStorage.removeItem("chatapp");
+      setAuthUser(null);
+      navigate("/login");
+    } catch (error) {
+      setLoading(false);
+      console.log(error);
+      toast.error("Logout failed");
     }
   };
 
-  console.log(chatUser);
+  const visibleUsers = searchResults.length > 0 ? searchResults : chatUsers;
+
   return (
-    <div className="h-full w-auto px-1">
-      <div className="flex justify-between gap-2">
-        <form
-          onSubmit={handelSearchSubmit}
-          className="w-auto flex items-center justify-between bg-white rounded-full "
-        >
+    <div className="flex h-full flex-col gap-4">
+      <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-4 shadow-xl backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.28em] text-sky-300">Hello</p>
+            <h2 className="text-xl font-semibold text-white">{authUser?.fullname || "Guest"}</h2>
+          </div>
+          <img
+            onClick={() => navigate(`/profile/${authUser?._id}`)}
+            src={authUser?.profilepic}
+            alt="profile"
+            className="h-14 w-14 rounded-full border border-white/10 object-cover shadow-lg cursor-pointer"
+          />
+        </div>
+        <div className="mt-4 flex items-center gap-2 rounded-full border border-slate-700 bg-slate-950/80 p-2">
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             type="text"
-            className="px-4 w-auto bg-transparent outline-none rounded-full"
-            placeholder="search user"
+            placeholder="Search users"
+            className="flex-1 bg-transparent px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500"
           />
-
-          {/* <button className="btn btn-circle bg-sky-700 hover:bg-gray-950">
+          <button
+            onClick={handleSearchSubmit}
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-sky-500 text-white transition hover:bg-sky-400"
+          >
             <FaSearch />
-          </button> */}
-
-          <button className="w-12 h-12 bg-sky-700 hover:bg-gray-950 rounded-full flex justify-center items-center">
-            <FaSearch className="text-white" />
           </button>
-        </form>
-        <img
-          onClick={() => navigate(`/profile/${authUser?._id}`)}
-          src={authUser?.profilepic}
-          className="self-center h-12 w-12 hover:scale-110 cursor-pointer"
-        />
+        </div>
       </div>
-      <div className="divider px-3"></div>
-      {searchUser?.length > 0 ? (
-        <>
-          <div className="min-h-[70%] max-h-[80%] overflow-y-auto scrollbar">
-            <div className="w-auto">
-              {searchUser.map((user, index) => (
-                <div key={user._id}>
-                  {/* <div
-                    onClick={() => handelUserClick(user)}
-                    className={`flex gap-3 
-                                                items-center rounded 
-                                                p-2 py-1 cursor-pointer
-                                                ${
-                                                  setSetSelectedUserId ===
-                                                  user._id
-                                                    ? "bg-sky-500"
-                                                    : ""
-                                                } `}
-                  > */}
 
-                  <div
-                    onClick={() => handelUserClick(user)}
-                    className={`flex gap-3 
-                                                items-center rounded 
-                                                p-2 py-1 cursor-pointer
-                                                ${
-                                                  selectedUserId === user?._id
-                                                    ? "bg-sky-500"
-                                                    : ""
-                                                } `}
-                  >
-                    <div className="flex items-center p-2">
-                      <div className="w-12 h-12 rounded-full overflow-hidden">
-                        <img
-                          src={user.profilepic}
-                          alt="user"
-                          className="object-cover w-full h-full"
-                        />
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <p className="font-bold text-gray-950">{user.username}</p>
-                    </div>
-                  </div>
-                  <hr className="border-t border-gray-300 my-2" />
+      <div className="flex-1 overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl">
+        <div className="max-h-[62vh] overflow-y-auto px-3 py-4">
+          {loading ? (
+            <div className="flex min-h-[240px] items-center justify-center text-slate-300">Loading chats…</div>
+          ) : visibleUsers.length === 0 ? (
+            <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 text-center text-slate-300">
+              <p className="text-lg font-semibold text-white">No chats yet</p>
+              <p>Search for someone to start a conversation.</p>
+            </div>
+          ) : (
+            visibleUsers.map((user) => (
+              <button
+                key={user._id}
+                type="button"
+                onClick={() => handleUserClick(user)}
+                className={`mb-3 flex w-full items-center gap-3 rounded-3xl border p-3 text-left transition ${
+                  selectedUserId === user._id
+                    ? "border-sky-400 bg-sky-500/20 text-white"
+                    : "border-white/10 bg-slate-950/80 text-slate-100 hover:border-sky-400 hover:bg-slate-900/80"
+                }`}
+              >
+                <img
+                  src={user.profilepic}
+                  alt={user.username}
+                  className="h-14 w-14 rounded-full object-cover"
+                />
+                <div className="truncate">
+                  <p className="font-semibold truncate">{user.username}</p>
+                  <p className="text-sm text-slate-400 truncate">{user.email || "Chat user"}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-          <div className="mt-auto px-1 flex">
-            <button
-              onClick={handelSearchback}
-              className="bg-white rounded-full px-2 py-1 self-center"
-            >
-              <FiArrowLeftCircle size={30} />
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="min-h-[70%] max-h-[80%] overflow-y-auto scrollbar">
-            <div className="w-auto">
-              {chatUser.length === 0 ? (
-                <>
-                  <div className="font-bold items-center flex flex-col text-xl text-yellow-500">
-                    <h1>Why are you Alone!!🤔</h1>
-                    <h1>Search username to chat</h1>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-full h-full p-4">
-                    {chatUser.map((user, index) => (
+              </button>
+            ))
+          )}
+        </div>
+      </div>
 
-
-
-
-
-                      <div key={user._id}>
-                        <div
-                          onClick={() => handelUserClick(user)}
-                          className={`flex gap-3 
-                                                items-center rounded 
-                                                p-2 py-1 cursor-pointer
-                                                ${
-                                                  selectedUserId === user?._id
-                                                    ? "bg-sky-500"
-                                                    : ""
-                                                } `}
-                        >
-                          <div className="flex items-center p-2">
-                            <div className="w-12 h-12 rounded-full overflow-hidden">
-                              <img
-                                src={user.profilepic}
-                                alt="user"
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <p className="font-bold text-gray-950">
-                              {user.username}
-                            </p>
-                          </div>
-                        </div>
-                        <hr className="border-t border-gray-300 my-2" />
-                      </div>
-                    ))}
-
-
-
-
-
-
-                    
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="mt-auto px-1 py-1 flex">
-            <button
-              onClick={handelLogOut}
-              className="flex items-center gap-2 hover:bg-red-600 px-3 py-2 cursor-pointer hover:text-white rounded-lg"
-            >
-              <SlLogout size={30} />
-              <span>Logout</span>
-            </button>
-          </div>
-        </>
-      )}
+      <button
+        onClick={handleLogout}
+        className="inline-flex items-center justify-center gap-2 rounded-full bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-500"
+      >
+        <SlLogout />
+        Logout
+      </button>
     </div>
   );
 };
 
-export default sidebar;
+export default Sidebar;

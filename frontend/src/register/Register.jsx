@@ -1,15 +1,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 const Register = () => {
-  const navigate= useNavigate()
+  const navigate = useNavigate();
   const { setAuthUser } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [inputData, setInputData]=useState({})
-
+  const [inputData, setInputData] = useState({});
 
   const handleInput = (e) => {
     setInputData({
@@ -17,11 +16,11 @@ const Register = () => {
       [e.target.id]: e.target.value,
     });
   };
-  console.log(inputData);
-  const selectGender = (selectGender) => {
+
+  const selectGender = (gender) => {
     setInputData((prev) => ({
       ...prev,
-      gender: selectGender === inputData.gender ? "" : selectGender,
+      gender: prev.gender === gender ? "" : gender,
     }));
   };
 
@@ -37,15 +36,14 @@ const Register = () => {
       return toast.error("Please select your gender");
     }
     try {
-      const register = await axios.post(`/api/auth/register`, inputData);
-      const data = register.data;
+      const response = await api.post("/api/auth/register", inputData);
+      const data = response.data;
       if (data.success === false) {
         setLoading(false);
-        toast.error(data.message);
-        console.log(data.message);
+        toast.error(data.message || "Registration failed");
         return;
       }
-      toast.success(data?.message);
+      toast.success(data?.message || "Account created successfully");
       localStorage.setItem("chatapp", JSON.stringify(data));
       setAuthUser(data);
       setLoading(false);
@@ -53,148 +51,106 @@ const Register = () => {
     } catch (error) {
       setLoading(false);
       console.log(error);
-      toast.error(error?.response?.data?.message);
+      toast.error(error?.response?.data?.message || "Registration failed");
     }
   };
 
-
   return (
-    <div className="flex flex-col items-center justify-center mix-w-full mx-auto">
-      <div className="w-full p-6 rounded-lg shadow-lg bg-gray-400 bg-clip-padding backdrop-filter backdrop-blur-lg bg-opacity-0">
-        <h1 className="text-3xl font-bold text-center text-gray-300">
-          Register
-          <span> ChatVV</span>
-        </h1>
-        <form onSubmit={handleSubmit} className="flex flex-col ">
-          <div>
-            <label className="label p-2">
-              <span className="font-bold text-gray-950 text-xl label-text">
-                fullname :
-              </span>
-            </label>
+    <div className="min-h-screen bg-slate-950/95 px-4 py-10 text-white">
+      <div className="mx-auto max-w-2xl overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-2xl">
+        <div className="mb-8 space-y-3 text-center">
+          <p className="text-sm uppercase tracking-[0.3em] text-sky-300">Create account</p>
+          <h1 className="text-4xl font-semibold text-white">Join ChatVV</h1>
+          <p className="text-slate-300">Sign up and start messaging instantly with a clean chat experience.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="grid gap-5">
+          <div className="grid gap-2">
+            <label className="text-sm font-semibold text-slate-200">Full Name</label>
             <input
               id="fullname"
               type="text"
               onChange={handleInput}
-              placeholder="Enter Full Name"
+              placeholder="Enter your full name"
               required
-              className="w-full input input-bordered h-10"
+              className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-white outline-none transition focus:border-sky-400"
             />
           </div>
-          <div>
-            <label className="label p-2">
-              <span className="font-bold text-gray-950 text-xl label-text">
-                username :
-              </span>
-            </label>
+          <div className="grid gap-2">
+            <label className="text-sm font-semibold text-slate-200">Username</label>
             <input
               id="username"
               type="text"
               onChange={handleInput}
-              placeholder="Enter UserName"
+              placeholder="Choose a username"
               required
-              className="w-full input input-bordered h-10"
+              className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-white outline-none transition focus:border-sky-400"
             />
           </div>
-          <div>
-            <label className="label p-2">
-              <span className="font-bold text-gray-950 text-xl label-text">
-                Email :
-              </span>
-            </label>
+          <div className="grid gap-2">
+            <label className="text-sm font-semibold text-slate-200">Email</label>
             <input
               id="email"
               type="email"
               onChange={handleInput}
-              placeholder="Enter email"
+              placeholder="you@example.com"
               required
-              className="w-full input input-bordered h-10"
+              className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-white outline-none transition focus:border-sky-400"
             />
           </div>
-          <div>
-            <label className="label p-2">
-              <span className="font-bold text-gray-950 text-xl label-text">
-                Password :
-              </span>
-            </label>
-            <input
-              id="password"
-              type="password"
-              onChange={handleInput}
-              placeholder="Enter password"
-              required
-              className="w-full input input-bordered h-10"
-            />
-          </div>
-
-          <div>
-            <label className="label p-2">
-              <span className="font-bold text-gray-950 text-xl label-text">
-                Conf.Password :
-              </span>
-            </label>
-            <input
-              id="confpassword"
-              type="text"
-              onChange={handleInput}
-              placeholder="Enter Confirm password"
-              required
-              className="w-full input input-bordered h-10"
-            />
-          </div>
-          <div id="gender" className="flex gap-2">
-            <label className="cursor-pointer label flex gap-2">
-              <span className="label-text font-semibold text-gray-950">
-                male
-              </span>
+          <div className="grid gap-2 md:grid-cols-2 md:gap-4">
+            <div className="grid gap-2">
+              <label className="text-sm font-semibold text-slate-200">Password</label>
               <input
-                onChange={() => selectGender("male")}
-                checked={inputData.gender === "male"}
-                type="checkbox"
-                className="checkbox checkbox-info"
+                id="password"
+                type="password"
+                onChange={handleInput}
+                placeholder="Create a password"
+                required
+                className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-white outline-none transition focus:border-sky-400"
               />
-            </label>
-            <label className="cursor-pointer label flex gap-2">
-              <span className="label-text font-semibold text-gray-950">
-                female
-              </span>
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-semibold text-slate-200">Confirm Password</label>
               <input
-                checked={inputData.gender === "female"}
-                onChange={() => selectGender("female")}
-                type="checkbox"
-                className="checkbox checkbox-info"
+                id="confpassword"
+                type="password"
+                onChange={handleInput}
+                placeholder="Confirm your password"
+                required
+                className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-white outline-none transition focus:border-sky-400"
               />
-            </label>
+            </div>
           </div>
-
+          <div className="flex flex-wrap gap-3">
+            {['male', 'female'].map((gender) => (
+              <button
+                key={gender}
+                type="button"
+                onClick={() => selectGender(gender)}
+                className={`rounded-full border px-5 py-3 text-sm font-semibold transition ${
+                  inputData.gender === gender
+                    ? 'border-sky-400 bg-sky-500 text-white'
+                    : 'border-slate-700 text-slate-200 hover:border-sky-400 hover:text-white'
+                }`}
+              >
+                {gender}
+              </button>
+            ))}
+          </div>
           <button
             type="submit"
-            className="mt-4 self-center 
-                            w-auto px-2 py-1 bg-gray-950 
-                            text-lg hover:bg-gray-900 
-                            text-white rounded-lg hover: scale-105"
+            className="w-full rounded-3xl bg-sky-500 px-5 py-3 text-base font-semibold text-white transition hover:bg-sky-400"
+            disabled={loading}
           >
-            {loading ? "loading.." : "Register"}
+            {loading ? "Creating account..." : "Register"}
           </button>
         </form>
-
-        <div className="pt-2">
-          <p
-            className="text-sm font-semibold
-                         text-gray-800"
-          >
-            Dont have an Acount ?{" "}
-            <Link to={"/login"}>
-              <span
-                className="text-gray-950 
-                            font-bold underline cursor-pointer
-                             hover:text-green-950"
-              >
-                Login Now!!
-              </span>
-            </Link>
-          </p>
-        </div>
+        <p className="mt-6 text-center text-sm text-slate-300">
+          Already have an account?{' '}
+          <Link to="/login" className="font-semibold text-white underline">
+            Login
+          </Link>
+        </p>
       </div>
     </div>
   );
