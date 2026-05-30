@@ -7,11 +7,25 @@ export const userRegister = async(req, res) => {
   try {
     const { fullname, username, email, gender, password, profilepic } =
       req.body;
-    const user = await User.findOne({ username, email });
-    if (user)
-      return res
-        .status(500)
-        .send({ sucess: false, message: " UseName or Email Already Exist" })
+
+    if (!gender) {
+      return res.status(400).send({
+        success: false,
+        message: "Gender is required",
+      });
+    }
+
+    const user = await User.findOne({
+      $or: [{ username }, { email }],
+    });
+
+    if (user) {
+      return res.status(409).send({
+        success: false,
+        message: "Username or Email already exists",
+      });
+    }
+
     const hashPassword = bcryptjs.hashSync(password, 10);
     const profileBoy =
       profilepic ||
@@ -41,42 +55,50 @@ export const userRegister = async(req, res) => {
       username: newUser.username,
       profilepic: newUser.profilepic,
       email: newUser.email,
+      message: "Registration successful",
+      success: true,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
-      message: error,
+      message: error.message || error,
     });
     console.log(error);
   }
 };
-export const userLogin = async(req,res)=>{
+export const userLogin = async (req, res) => {
     try{
         const {email, password} = req.body;
-        const user = await User.findOne({email})
-        if(!user) return res.status(500).send({
-            success: false,
-            message: "Email doesn't Exist Register" 
-        })
-        const comparePass= bcryptjs.compareSync(password,user.password || "");
-        if (!comparePass) return res.status(500).send({success:false, message:"not matched"})
+        const user = await User.findOne({ email });
+    if (!user)
+      return res.status(401).send({
+        success: false,
+        message: "Email not found. Please register.",
+      });
 
-        jwtToken(user._id,res)
-        res.status(200).send({
-          _id: user._id,
-          fullname: user.fullname,
-          username: user.username,
-          profilepic: user.profilepic,
-          email: user.email,
-          message:"successfull login"
-        })
-    }catch(error){
-        res.status(500).send({
-            success: false,
-            message: error
-        })   
-    console.log(error)
-    }
+    const comparePass = bcryptjs.compareSync(password, user.password || "");
+    if (!comparePass)
+      return res.status(401).send({
+        success: false,
+        message: "Email or password is incorrect",
+      });
+
+    jwtToken(user._id, res);
+    res.status(200).send({
+      _id: user._id,
+      fullname: user.fullname,
+      username: user.username,
+      profilepic: user.profilepic,
+      email: user.email,
+      message: "successful login",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: error.message || error,
+    });
+    console.log(error);
+  }
 }
 
 

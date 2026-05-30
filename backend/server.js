@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
@@ -11,17 +12,19 @@ import messageRouter from "./rout/messageRout.js";
 import userRouter from "./rout/userRout.js";
 
 import { app, server } from "./Socket/socket.js";
-
-dotenv.config();
 const __dirname = path.resolve();
+
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "https://real-time-chat-platform.onrender.com",
+  "https://realtime-messaging-platform.onrender.com",
+].filter(Boolean);
 
 // ✅ FIXED CORS
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://real-time-chat-platform.onrender.com"
-    ],
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })

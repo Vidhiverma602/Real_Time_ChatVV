@@ -28,9 +28,13 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    if (inputData.password !== inputData.confpassword.toLowerCase()) {
+    if (inputData.password !== inputData.confpassword) {
       setLoading(false);
-      return toast.error("Password Dosen't match");
+      return toast.error("Passwords don't match");
+    }
+    if (!inputData.gender) {
+      setLoading(false);
+      return toast.error("Please select your gender");
     }
     try {
       const register = await axios.post(`/api/auth/register`, inputData);
@@ -39,6 +43,7 @@ const Register = () => {
         setLoading(false);
         toast.error(data.message);
         console.log(data.message);
+        return;
       }
       toast.success(data?.message);
       localStorage.setItem("chatapp", JSON.stringify(data));

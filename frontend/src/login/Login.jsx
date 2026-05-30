@@ -23,7 +23,8 @@ const Login = () => {
       const data = login.data;
       if (data.success === false) {
         setLoading(false);
-        return console.log(data.message);
+        toast.error(data.message);
+        return;
       }
       toast.success(data.message);
       localStorage.setItem("chatapp", JSON.stringify(data));
