@@ -47,12 +47,12 @@ const Login = () => {
           <p className="text-slate-300">Enter your credentials to continue chatting instantly.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <label className="block text-sm font-semibold text-slate-200">Email</label>
+            <label className="block text-sm font-semibold text-slate-200">Email or Username</label>
           <input
-            id="email"
-            type="email"
+            id="emailOrUsername"
+            type="text"
             onChange={handleInput}
-            placeholder="you@example.com"
+            placeholder="you@example.com or username"
             required
             className="w-full rounded-3xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-white outline-none transition focus:border-sky-400"
           />

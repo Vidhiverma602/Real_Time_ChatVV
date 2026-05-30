@@ -67,20 +67,23 @@ export const userRegister = async(req, res) => {
   }
 };
 export const userLogin = async (req, res) => {
-    try{
-        const {email, password} = req.body;
-        const user = await User.findOne({ email });
+  try {
+    const { emailOrUsername, password } = req.body;
+    const user = await User.findOne({
+      $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
+    });
+
     if (!user)
       return res.status(401).send({
         success: false,
-        message: "Email not found. Please register.",
+        message: "Email or username not found. Please register.",
       });
 
     const comparePass = bcryptjs.compareSync(password, user.password || "");
     if (!comparePass)
       return res.status(401).send({
         success: false,
-        message: "Email or password is incorrect",
+        message: "Email/username or password is incorrect",
       });
 
     jwtToken(user._id, res);
@@ -90,7 +93,8 @@ export const userLogin = async (req, res) => {
       username: user.username,
       profilepic: user.profilepic,
       email: user.email,
-      message: "successful login",
+      message: "Successful login",
+      success: true,
     });
   } catch (error) {
     res.status(500).send({
@@ -99,7 +103,7 @@ export const userLogin = async (req, res) => {
     });
     console.log(error);
   }
-}
+};
 
 
 
