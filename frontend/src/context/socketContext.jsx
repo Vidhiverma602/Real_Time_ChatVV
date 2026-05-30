@@ -14,8 +14,16 @@ export const SocketContextProvider = ({ children }) => {
   const { authUser } = useAuth();
   useEffect(() => {
     if (authUser) {
-      // Use Vite env var when provided (set VITE_SERVER_URL in production), otherwise fall back to current origin or localhost
-      const SERVER_URL = import.meta.env.VITE_SERVER_URL || window.location.origin || "http://localhost:7000";
+      // Use Vite env var when provided, otherwise fall back to localhost in development
+      // or use the deployed backend URL in production.
+      const isLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+      const SERVER_URL =
+        import.meta.env.VITE_SERVER_URL ||
+        (isLocalhost
+          ? "http://localhost:7000"
+          : "https://realtime-messaging-platform.onrender.com");
       const socket = io(SERVER_URL, {
         query: {
           userId: authUser?._id,
